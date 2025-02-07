@@ -28,16 +28,13 @@ class Field:
         return False
 
 class Name(Field):
-    def __init__(self, value:str):
-        if value[0].isupper():
-            self.value = value
-        else:
-             raise WrongFormatOfField("First letter of the name should be in uppercase")
+    pass
+
 
 class Phone(Field):
      def __init__(self, value):
-        if len(value) == 10 and value.isnumeric():
-            self.value = value
+        if len(value) == 10 and value.isdecimal():
+            super().__init__(value)
         else:
              raise WrongFormatOfField("The phone number should contain 10 numeric characters")
 
@@ -49,27 +46,25 @@ class Record:
     def add_phone(self, phone):
         self.phones.append(Phone(phone))
 
-    def del_phone(self, phone):
-        if Phone(phone) in self.phones:
-            self.phones.remove(Phone(phone))
+    def remove_phone(self, phone):
+        if phone in self.phones:
+            self.phones.remove(phone)
         else:
             raise ValueError(f"Phone number {phone} not found")
 
-    def change_phone(self, old_number, new_number):
-        if Phone(old_number) in self.phones:
-            self.phones[self.phones.index(Phone(old_number))] = Phone(new_number)
-        else:
-            raise ValueError(f"Phone number {old_number} not found")
+    def edit_phone(self, old_number, new_number):
+        self.remove_phone(self.find_phone(old_number))
+        self.add_phone(new_number)
 
     def find_phone(self, number):
-        if Phone(number) in self.phones:
-            return number
-        else:
-            raise ValueError(f"Phone number {number} not found")
+        return next((phone for phone in self.phones 
+                     if phone == Phone(number)), None)
+    
+    def __str__(self):
+        return f"Contact: {self.name}, tel.: {self.phones}"
 
 
 class AddressBook(UserDict):
-    @input_error
     def __init__(self, path):
         self.path = path
         self.data = {}
@@ -93,16 +88,17 @@ class AddressBook(UserDict):
         else:
             raise ValueError(f"Record {record.name} not found")
         
-    def find_record(self, record):
-        return record in self.data.keys()
-    
-    def get_record(self, name):
+    def find(self, name):
         if name in self.data.keys():
             return self.data[name]
         else:
              raise ValueError(f"Record {name} not found")
+        
+    
+    def check_record(self, record):
+        return record in self.data.keys()
 
-    def delete_record(self, name):
+    def delete(self, name):
         if name in self.data.keys():
             del self.data[name]
         else:  
@@ -112,6 +108,9 @@ class AddressBook(UserDict):
         with open(self.path,"w",encoding="utf-8") as file:
             for key, value in self.data.items():
                 file.write(f"{key},{'; '.join(map(str, value.phones))}\n")
+    
+    def __str__(self):
+        return [f"{value}" for key,value in self.data]
 
 
 @input_error
@@ -124,8 +123,8 @@ def parse_input(user_input):
 @input_error
 def add_contact(args, contacts:AddressBook):
     name, phone = args
-    if contacts.find_record(name):
-        record = contacts.get_record(name)
+    if contacts.check_record(name):
+        record = contacts.find(name)
         record.add_phone(phone)
         contacts.update_record(record)
         contacts.save_records()
@@ -138,8 +137,8 @@ def add_contact(args, contacts:AddressBook):
 @input_error
 def change_contact(args, contacts:AddressBook):
     name, old_phone, new_phone = args
-    record = contacts.get_record(name)
-    record.change_phone(old_phone, new_phone)
+    record = contacts.find(name)
+    record.edit_phone(old_phone, new_phone)
     contacts.update_record(record)
     contacts.save_records()
     return "Contact changed."
@@ -148,7 +147,7 @@ def change_contact(args, contacts:AddressBook):
 @input_error
 def show_phone(args, contacts:AddressBook):
     name = args[0]
-    record = contacts.get_record(name)
+    record = contacts.find(name)
     return f"tel: {'; '.join(map(str, record.phones))}"
 
 
