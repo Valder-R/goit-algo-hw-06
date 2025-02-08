@@ -53,8 +53,8 @@ class Record:
             raise ValueError(f"Phone number {phone} not found")
 
     def edit_phone(self, old_number, new_number):
-        self.remove_phone(self.find_phone(old_number))
         self.add_phone(new_number)
+        self.remove_phone(self.find_phone(old_number))
 
     def find_phone(self, number):
         return next((phone for phone in self.phones 
